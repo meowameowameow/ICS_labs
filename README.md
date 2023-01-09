@@ -6,6 +6,8 @@
 
 ## datalab
 
+bits.c
+
 ## bomblab
 
 ## attacklab
