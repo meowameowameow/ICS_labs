@@ -10,7 +10,7 @@ bits.c (80/80)
 
 ## bomblab
 
-ans.txt ()
+ans.txt (70/70)
 
 bomb - 可执行文件
 
@@ -34,7 +34,7 @@ seq-full.hcl - 实现iaddq与jm
 
 pipe-full.hcl - 实现iaddq与"加载转发"
 
-ncopy.ys (代码长度 997 bytes，CPE 7.38)
+ncopy.ys (Performance 60/60，代码长度 997 bytes，CPE 7.38)
 
 ## cachelab
 
