@@ -24,7 +24,17 @@ bomb.s - 反汇编文件，内含拆弹时所做注释
 
 ## archlab
 
-ncopy.ys
+sum.ys
+
+rsum.ys
+
+bubble.ys
+
+seq-full.hcl - 实现iaddq与jm
+
+pipe-full.hcl - 实现iaddq与"加载转发"
+
+ncopy.ys (代码长度 997 bytes，CPE 7.38)
 
 ## cachelab
 
