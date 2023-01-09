@@ -1,0 +1,188 @@
+#/* $begin ncopy-ys */
+##################################################################
+# ncopy.ys - Copy a src block of len words to dst.
+# Return the number of positive words (>0) contained in src.
+#
+# Describe how and why you modified the baseline code.
+# 方法概述：10X1循环展开，三叉树分治处理余数分支，并实现加载转发，进行优化；997 bytes，CPE 7.38
+# 
+# 循环展开在不造成寄存器溢出的情况下倾向于越多越好，本地优化曾采用 9X1循环展开+二叉树/二分法 处理余数(0-8)，但最高优化到 7.60
+# 尝试 10X1展开+二叉树 时，CPE达到 7.52，但长度超出了 18bytes，遂作罢。
+# 因为Y86没有cmpq，只能与0比较，分为小/等/大于，故考虑采用三叉树更佳。
+# 考虑到计算平均CPE时各长度权值相同，故希望减少长度较小的数组的周期数，即尽量按0,1,2……升序处理余数，
+# 首先以3分支，左子树012按1分支，右子树456789先后按5，7分支。并改变小jl/等je/大于jg的顺序，以采用得分更好的方法。
+# 由于三叉树整体上看实现了类似switch的功能，接下来的代码就可以类似没有break的casek分支 ,
+# 从而实现代码复用，节省空间，将循环展开增大到10X1
+# 此时，不得不出现mrmovq与rmmovq连用的情况。为避免bubble，实现“加载转发”（具体实现在pipe-full.hcl文件）
+# 另外：
+# 因为分支预测总是假设条件成立，据此调整部分条件跳转的顺序；
+# 在判断%rax是否+1时，经实验，条件跳转优于条件传送（可能由于后者每次多一条指令）
+##################################################################
+# Do not modify this portion
+# Function prologue.
+# %rdi = src, %rsi = dst, %rdx = len
+ncopy:
+
+##################################################################
+# You can modify this portion
+	# Loop header
+	iaddq $-10, %rdx	# len-=10
+	jl Yu			# always predict to jmp tp Yu
+Loop:	
+	mrmovq (%rdi), %r10	# read 10 val from src
+	mrmovq 8(%rdi), %r9
+	mrmovq 16(%rdi), %r11
+	mrmovq 24(%rdi), %r12
+	mrmovq 32(%rdi), %r13
+	mrmovq 40(%rdi), %r14
+	mrmovq 48(%rdi), %rbp
+	mrmovq 56(%rdi), %rcx
+	mrmovq 64(%rdi), %rbx
+    	mrmovq 72(%rdi), %r8
+
+	andq %r10,%r10
+	jle add1
+	iaddq $1,%rax
+add1:
+    	andq %r9,%r9
+	jle add2
+	iaddq $1,%rax
+add2:
+    	andq %r11,%r11
+	jle add3
+	iaddq $1,%rax
+add3:
+	andq %r12,%r12
+	jle add4
+	iaddq $1,%rax
+add4:
+	andq %r13,%r13
+	jle add5
+	iaddq $1,%rax
+add5:
+	andq %r14,%r14
+	jle add6
+	iaddq $1,%rax
+add6:
+    	andq %rbp,%rbp
+	jle add7
+	iaddq $1,%rax
+add7:
+    	andq %rcx,%rcx
+	jle add8
+	iaddq $1,%rax
+add8:
+    	andq %rbx,%rbx
+	jle add9
+	iaddq $1,%rax
+add9:
+    	andq %r8,%r8
+	jle end_add
+	iaddq $1,%rax
+
+end_add:
+	rmmovq %r10, (%rsi)	# and store 10 to dst 
+	rmmovq %r9, 8(%rsi)
+	rmmovq %r11, 16(%rsi)
+	rmmovq %r12, 24(%rsi)
+	rmmovq %r13, 32(%rsi)
+	rmmovq %r14, 40(%rsi)
+	rmmovq %rbp, 48(%rsi)
+	rmmovq %rcx, 56(%rsi)
+	rmmovq %rbx, 64(%rsi)
+	rmmovq %r8, 72(%rsi)
+	iaddq $80, %rdi		# src+=10
+	iaddq $80, %rsi		# dst+=10	
+	iaddq $-10, %rdx	# len-=10
+	jge Loop		
+
+# Yu= 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+# %rdx/len= -10,-9,-8,-7,-6,-5,-4,-3,-2,-1
+
+Yu:				
+	iaddq $7,%rdx		# len= -3,-2,-1,0(3),1,2,3,4,5,6
+	jl lNode				# len= -3,-2(1),-1		
+	jg rNode				# len= 1,2,3(6),4,5,6
+	je L3						# len= 3	
+lNode:				
+	iaddq $2,%rdx		# len= -1,0(1),1	
+	je L1						# len= 1 
+	jg L2						# len= 2 
+	ret						# len= 0 
+rNode:					
+	iaddq $-2,%rdx	# len= -1,0(5),1,2,3,4
+	jg rrNode				# len= 1,2(7),3,4
+	jl L4						# len= 4 
+	je L5						# len= 5		
+rrNode:			
+	iaddq $-2,%rdx	# len= -1,0(7),1,2
+	jg rrrNode			# len= 1(8),2 
+	jl L6						# len= 6
+	je L7						# len= 7
+rrrNode:
+	iaddq $-2,%rdx	# len= -1(8),0
+	jl L8						# len= 8
+
+	mrmovq 64(%rdi), %r8	
+	rmmovq %r8, 64(%rsi)
+	andq %r8, %r8		
+	jle L8
+	iaddq $1,%rax
+L8:
+	mrmovq 56(%rdi), %r8	
+	rmmovq %r8, 56(%rsi)
+	andq %r8, %r8		
+	jle L7
+	iaddq $1,%rax
+L7:
+	mrmovq 48(%rdi), %r8	
+	rmmovq %r8, 48(%rsi)
+	andq %r8, %r8		
+	jle L6
+	iaddq $1,%rax
+L6:
+	mrmovq 40(%rdi), %r8	
+	rmmovq %r8, 40(%rsi)
+	andq %r8, %r8		
+	jle L5
+	iaddq $1,%rax
+L5:
+	mrmovq 32(%rdi), %r8	
+	rmmovq %r8, 32(%rsi)
+	andq %r8, %r8		
+	jle L4
+	iaddq $1,%rax
+L4:
+	mrmovq 24(%rdi), %r8	
+	rmmovq %r8, 24(%rsi)
+	andq %r8, %r8		
+	jle L3
+	iaddq $1,%rax
+L3:
+	mrmovq 16(%rdi), %r8	
+	rmmovq %r8, 16(%rsi)
+	andq %r8, %r8		
+	jle L2
+	iaddq $1,%rax
+L2:
+	mrmovq 8(%rdi), %r8	
+	rmmovq %r8, 8(%rsi)
+	andq %r8, %r8		
+	jle L1
+	iaddq $1,%rax
+L1:
+	mrmovq (%rdi), %r8	
+	rmmovq %r8, (%rsi)
+	andq %r8, %r8		
+	jle Done
+	iaddq $1,%rax
+
+##################################################################
+# Do not modify the following section of code
+# Function epilogue.
+Done:
+	ret
+##################################################################
+# Keep the following label at the end of your function
+End:
+#/* $end ncopy-ys */

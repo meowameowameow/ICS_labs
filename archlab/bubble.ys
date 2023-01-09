@@ -1,0 +1,70 @@
+.pos 0
+irmovq stack,%rsp
+call main
+halt
+
+# Sample linked list
+	.align 8
+Array:
+	.quad 0xbca
+	.quad 0xcba
+	.quad 0xacb
+	.quad 0xcab
+	.quad 0xabc
+	.quad 0xbac
+
+main:
+	irmovq Array,%rdi
+	irmovq $6,%rsi
+	call bubble_sort
+	ret
+
+bubble_sort:
+	#data in %rdi, count in %rsi, i in %rdx, last in %rcx ,8 in %r10
+	pushq %r12
+	pushq %r13
+	xorq %rdx,%rdx	
+	rrmovq %rdi,%rcx
+	irmovq $8,%r10
+	addq %rsi,%rsi
+	addq %rsi,%rsi
+	addq %rsi,%rsi #8*count
+	addq %rsi,%rcx
+	subq %r10,%rcx
+	jmp test1
+
+loop1:
+#inside1
+
+	rrmovq %rdi,%rdx
+	jmp test2
+loop2:
+#inside2
+	mrmovq 8(%rdx),%r11 #*(i+1)
+	mrmovq (%rdx),%r12 #save *i
+	rrmovq %r12,%r13 #*i
+	subq %r11,%r13 #change r13
+	jle done
+	rmmovq %r12,8(%rdx)
+	rmmovq %r11,(%rdx)
+
+#inside2
+done:
+	addq %r10,%rdx
+test2:
+	rrmovq %rdx,%r8
+	subq %rcx,%r8
+	jl loop2
+	
+#inside1
+	subq %r10,%rcx
+test1:
+	rrmovq %rcx,%r9
+	subq %rdi,%r9
+	jg loop1
+	popq %r13
+	popq %r12
+	ret
+
+	.pos 0x200
+stack:
