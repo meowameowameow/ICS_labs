@@ -21,6 +21,8 @@
 
 ## archlab
 
+(190/190)
+
 * `sum.ys`
 * `rsum.ys`
 * `bubble.ys`
@@ -29,6 +31,11 @@
 * `ncopy.ys` (Performance 60/60，代码长度 997 bytes，CPE 7.38)
 
 ## cachelab
+
+(60/60)
+
+* `csim.c`
+* `trans.c`
 
 ## tshlab
 
