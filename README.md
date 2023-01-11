@@ -49,4 +49,8 @@
 
 ## malloclab
 
+(120/120)
+
+* `mm.c` - 实现基础的malloc函数
+
 ## proxylab
