@@ -6,11 +6,15 @@
 
 ## datalab
 
-* `bits.c` (80/80)
+(80/80)
+
+* `bits.c` 
 
 ## bomblab
 
-* `ans.txt` (70/70)
+(70/70)
+
+* `ans.txt` 
 * `bomb` - 可执行文件
 * `bomb.c` - 源文件
 * `bomb.s` - 反汇编文件，内含拆弹时所做注释
