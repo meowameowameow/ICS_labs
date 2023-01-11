@@ -43,6 +43,10 @@
 
 ## tshlab
 
+(138/138)
+
+* `tsh.c` - 实现tiny shell的基本功能
+
 ## malloclab
 
 ## proxylab
